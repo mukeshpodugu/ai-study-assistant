@@ -51,14 +51,63 @@ export default function PDFChat() {
     "Writing Prisma schema indexes to database..."
   ];
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  const MOCK_USER_ID = 'podugu_mukesh_dev';
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
     
     setUploading(true);
     setUploadStep(0);
-    
-    // Simulate progression of indexing stages
+
+    // 1. Try to upload to real Express backend API if active
+    try {
+      const formData = new FormData();
+      formData.append('document', file);
+      formData.append('userId', MOCK_USER_ID);
+
+      // Increment visual steps for student parsing console
+      const stepTimer = setInterval(() => {
+        setUploadStep((prev) => (prev < 4 ? prev + 1 : prev));
+      }, 500);
+
+      const response = await fetch(`${API_URL}/documents/upload`, {
+        method: 'POST',
+        body: formData
+      });
+
+      clearInterval(stepTimer);
+
+      if (response.ok) {
+        setUploadStep(5);
+        const data = await response.json();
+        const doc = data.document;
+
+        const newDoc = {
+          id: doc.id,
+          title: doc.title,
+          size: `${(doc.fileSize / (1024 * 1024)).toFixed(1)} MB`,
+          summary: doc.summary || 'Summary compiled successfully.'
+        };
+
+        setDocuments((prev) => [...prev, newDoc]);
+        setSelectedDocId(newDoc.id);
+        setChatHistory(prevChat => ({
+          ...prevChat,
+          [newDoc.id]: [
+            { sender: 'bot', text: `Hi! I have successfully extracted, chunked, and indexed **${file.name}** using Gemini & Pinecone. Ask me anything!`, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+          ]
+        }));
+        setUploading(false);
+        return;
+      }
+    } catch (err) {
+      console.warn("Backend server not reached. Falling back to local client-side simulation.", err);
+    }
+
+    // 2. Fallback to client-side simulation if backend is offline
+    setUploadStep(0);
     const interval = setInterval(() => {
       setUploadStep((prev) => {
         if (prev === uploadSteps.length - 1) {
@@ -68,14 +117,14 @@ export default function PDFChat() {
               id: (documents.length + 1).toString(),
               title: file.name,
               size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-              summary: `Custom text extraction from ${file.name}. It discusses advanced engineering algorithms, optimization logic, and structural architectures.`
+              summary: `[Simulation Mode] Text extraction mock from ${file.name}. This is running in client simulation because the Render backend is offline or loading. Configure NEXT_PUBLIC_API_URL to activate real-time Gemini parsing.`
             };
-            setDocuments([...documents, newDoc]);
+            setDocuments((prevDocs) => [...prevDocs, newDoc]);
             setSelectedDocId(newDoc.id);
             setChatHistory(prevChat => ({
               ...prevChat,
               [newDoc.id]: [
-                { sender: 'bot', text: `Hi! I have successfully extracted and indexed **${file.name}**. Feel free to ask me anything!`, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+                { sender: 'bot', text: `[Simulation Mode] I have mock-indexed **${file.name}**. (Note: Connect your backend URL to run real-time queries).`, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
               ]
             }));
             setUploading(false);
@@ -87,25 +136,54 @@ export default function PDFChat() {
     }, 800);
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!chatInput.trim() || !selectedDocId) return;
+    const queryText = chatInput;
     const userMsg: Message = {
       sender: 'user',
-      text: chatInput,
+      text: queryText,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
     const currentDocHistory = chatHistory[selectedDocId] || [];
-    setChatHistory({
-      ...chatHistory,
-      [selectedDocId]: [...currentDocHistory, userMsg]
-    });
+    setChatHistory((prev) => ({
+      ...prev,
+      [selectedDocId]: [...(prev[selectedDocId] || []), userMsg]
+    }));
     setChatInput('');
 
-    // Simulate RAG response grounded in files
+    // 1. Try requesting real-time RAG response from Express Backend
+    try {
+      const response = await fetch(`${API_URL}/documents/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          documentId: selectedDocId,
+          query: queryText
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const botMsg: Message = {
+          sender: 'bot',
+          text: data.response,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setChatHistory((prev) => ({
+          ...prev,
+          [selectedDocId]: [...(prev[selectedDocId] || []), botMsg]
+        }));
+        return;
+      }
+    } catch (err) {
+      console.warn("Backend communication failed, falling back to simulated query responses.", err);
+    }
+
+    // 2. Fallback to client-side static responses if server is offline
     setTimeout(() => {
       let responseText = "I found context matching your query. ";
-      const query = chatInput.toLowerCase();
+      const query = queryText.toLowerCase();
       
       if (selectedDocId === '1') {
         if (query.includes('rag') || query.includes('retrieval')) {
