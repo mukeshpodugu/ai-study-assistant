@@ -1,0 +1,109 @@
+// Prisma schema file for AI Study Assistant Platform
+// Database targets PostgreSQL, but using SQLite as a local fallback for ease of student local runs is documentable.
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String
+  name          String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  documents     Document[]
+  quizzes       Quiz[]
+  flashcardDecks FlashcardDeck[]
+  tasks         StudyTask[]
+  sessions      StudySession[]
+}
+
+model Document {
+  id             String         @id @default(uuid())
+  title          String
+  filePath       String
+  fileSize       Int
+  mimeType       String
+  pineconeIndex  String?        // Target Pinecone Namespace/Index for vector search
+  summary        String?        // Cached AI summary
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quizzes        Quiz[]
+  flashcardDecks FlashcardDeck[]
+}
+
+model Quiz {
+  id          String         @id @default(uuid())
+  title       String
+  questions   Json           // Store questions list with options, correct answers, and feedback explanation as a JSON blob
+  score       Int?           // Optional grade if taken
+  maxScore    Int
+  createdAt   DateTime       @default(now())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentId  String?
+  document    Document?      @relation(fields: [documentId], references: [id], onDelete: SetNull)
+}
+
+model FlashcardDeck {
+  id          String      @id @default(uuid())
+  title       String
+  description String?
+  createdAt   DateTime    @default(now())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentId  String?
+  document    Document?   @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  cards       Flashcard[]
+}
+
+model Flashcard {
+  id            String        @id @default(uuid())
+  front         String        // Question or term
+  back          String        // Answer or definition
+  explanation   String?       // AI provided clarification
+  
+  // SM-2 Spaced Repetition Parameters
+  interval      Int           @default(1)     // Days until next review
+  repetition    Int           @default(0)     // Number of consecutive correct reviews
+  easeFactor    Float         @default(2.5)   // Ease factor determines multiplier (SuperMemo SM-2 default)
+  dueDate       DateTime      @default(now()) // Next review date
+  
+  createdAt     DateTime      @default(now())
+  deckId        String
+  deck          FlashcardDeck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+}
+
+model StudyTask {
+  id             String    @id @default(uuid())
+  title          String
+  description    String?
+  dueDate        DateTime
+  isCompleted    Boolean   @default(false)
+  priority       String    @default("MEDIUM") // LOW, MEDIUM, HIGH
+  aiPriorityScore Float     @default(0.5)      // Generated score on importance/exam weight
+  aiTips         String?   // AI suggestions for finishing the task
+  createdAt      DateTime  @default(now())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model StudySession {
+  id          String   @id @default(uuid())
+  startTime   DateTime @default(now())
+  endTime     DateTime?
+  durationMin Int      @default(0)
+  focusScore  Int      @default(5) // Scale 1-10 self-rated or tab tracking
+  subject     String
+  createdAt   DateTime @default(now())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
