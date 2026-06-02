@@ -1,0 +1,30 @@
+{
+  "name": "ai-study-assistant-monorepo",
+  "version": "1.0.0",
+  "description": "An AI-powered Study Assistant Platform combining document chat, quiz generation, active recall flashcards, and personalized study planning.",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "install:all": "npm install && npm run install-deps",
+    "install-deps": "npm run install --workspace=frontend && npm run install --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:backend": "npm run dev --workspace=backend",
+    "build:frontend": "npm run build --workspace=frontend",
+    "build:backend": "npm run build --workspace=backend"
+  },
+  "keywords": [
+    "nextjs",
+    "express",
+    "prisma",
+    "gemini",
+    "pinecone",
+    "rag",
+    "study-assistant",
+    "spaced-repetition"
+  ],
+  "author": "PODUGU MUKESH",
+  "license": "MIT"
+}
