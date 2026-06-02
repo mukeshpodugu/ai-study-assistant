@@ -7,6 +7,12 @@ An intelligent, full-stack learning platform combining Document Chat (RAG), Acti
 
 ---
 
+## 🌐 Live Deployments
+- **Frontend Client (Vercel):** [https://ai-study-assistant-frontend-fvcn1b7k8-podugu-mukeshs-projects.vercel.app](https://ai-study-assistant-frontend-fvcn1b7k8-podugu-mukeshs-projects.vercel.app)
+- **Backend API Server (Render):** [https://ai-study-assistant-backend-d2wp.onrender.com](https://ai-study-assistant-backend-d2wp.onrender.com)
+
+---
+
 ## 🏗️ Project Architecture
 
 The application is structured as a full-stack JavaScript/TypeScript project, organizing frontend layout rendering separate from api controller routes.
