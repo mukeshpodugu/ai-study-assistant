@@ -12,7 +12,8 @@ import {
   AlertTriangle,
   Info,
   ChevronRight,
-  Lightbulb
+  Lightbulb,
+  Loader2
 } from 'lucide-react';
 
 interface Task {
