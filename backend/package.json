@@ -4,7 +4,7 @@
   "description": "Express backend for the AI Study Assistant Platform featuring Gemini RAG, vector database indexing, quizzes, flashcards, and planner routes.",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc",
+    "build": "prisma generate && tsc",
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "prisma:generate": "prisma generate",
